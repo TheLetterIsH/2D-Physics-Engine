@@ -1,9 +1,6 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
 
-let x = 100;
-let y = 100;
-
 let moveUp, moveDown, moveLeft, moveRight;
 
 const UP = 38;
@@ -15,69 +12,93 @@ const S = 83;
 const A = 65;
 const D = 68;
 
+const ballList = [];
 
 
-function drawBall(x, y, radius, fillColor) {
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = "black";
-    ctx.stroke();
-    ctx.fillStyle = fillColor;
-    ctx.fill();
+class Ball {
+    constructor(x, y, radius, fillColor) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.fillColor = fillColor;
+        this.isPlayer = false;
+        ballList.push(this);
+    }
+
+    drawBall() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+        ctx.fillStyle = this.fillColor;
+        ctx.fill();
+    }
 }
 
-canvas.addEventListener('keydown', function (e) {
-    if (e.keyCode == UP || e.keyCode == W) {
-        moveUp = true;
-    }
-    if (e.keyCode == DOWN || e.keyCode == S) {
-        moveDown = true;
-    }
-    if (e.keyCode == LEFT || e.keyCode == A) {
-        moveLeft = true;
-    }
-    if (e.keyCode == RIGHT || e.keyCode == D) {
-        moveRight = true;
-    }
 
-});
-
-canvas.addEventListener('keyup', function (e) {
-    if (e.keyCode == UP || e.keyCode == W) {
-        moveUp = false;
-    }
-    if (e.keyCode == DOWN || e.keyCode == S) {
-        moveDown = false;
-    }
-    if (e.keyCode == LEFT || e.keyCode == A) {
-        moveLeft = false;
-    }
-    if (e.keyCode == RIGHT || e.keyCode == D) {
-        moveRight = false;
-    }
-
-});
-
-function move() {
+function playerController(ball) {
+    canvas.addEventListener('keydown', function (e) {
+        if (e.keyCode == UP || e.keyCode == W) {
+            moveUp = true;
+        }
+        if (e.keyCode == DOWN || e.keyCode == S) {
+            moveDown = true;
+        }
+        if (e.keyCode == LEFT || e.keyCode == A) {
+            moveLeft = true;
+        }
+        if (e.keyCode == RIGHT || e.keyCode == D) {
+            moveRight = true;
+        }
+    
+    });
+    
+    canvas.addEventListener('keyup', function (e) {
+        if (e.keyCode == UP || e.keyCode == W) {
+            moveUp = false;
+        }
+        if (e.keyCode == DOWN || e.keyCode == S) {
+            moveDown = false;
+        }
+        if (e.keyCode == LEFT || e.keyCode == A) {
+            moveLeft = false;
+        }
+        if (e.keyCode == RIGHT || e.keyCode == D) {
+            moveRight = false;
+        }
+    
+    });
+    
     if (moveUp) {
-        y--;
+        ball.y--;
     }
     if (moveDown) {
-        y++;
+        ball.y++;
     }
     if (moveLeft) {
-        x--;
+        ball.x--;
     }
     if (moveRight) {
-        x++;
+        ball.x++;
     }
-}
+} 
 
 
 function mainLoop() {
     ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    move();
-    drawBall(x, y, 20, "mediumseagreen");
+    
+    ballList.forEach(ballElement => {
+        ballElement.drawBall();
+
+        if (ballElement.isPlayer) {
+            playerController(mainBall);
+        }
+    });
+
     requestAnimationFrame(mainLoop);
 }
+
+
+let mainBall = new Ball(200, 200, 20, "mediumseagreen");
+mainBall.isPlayer = true;
 requestAnimationFrame(mainLoop);
