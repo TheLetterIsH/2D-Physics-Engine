@@ -14,6 +14,55 @@ const D = 68;
 
 const ballList = [];
 
+let friction = 0.1;
+
+class Vector {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    add(vect) {
+        return new Vector(this.x + vect.x, this.y + vect.y)
+    }
+
+    subtract(vect) {
+        return new Vector(this.x - vect.x, this.y - vect.y)
+    }
+
+    multiply(n) {
+        return new Vector(this.x * n, this.y * n);
+    }
+
+    magnitude() {
+        return Math.sqrt(this.x**2 + this.y**2);
+    }
+
+    unit() {
+        if (this.magnitude() === 0) {
+            return new Vector(0, 0);
+        }
+
+        return new Vector(this.x / this.magnitude(), this.y / this.magnitude());
+    }
+
+    normal() {
+        return new Vector(-this.y, this.x).unit();
+    }
+
+    static dot(vect1, vect2) {
+        return ((vect1.x * vect2.x) + (vect1.y * vect2.y));
+    }
+
+    drawVector(startX, startY, n, color) {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(startX + this.x * n, startY + this.y * n);
+        ctx.strokeStyle = color;
+        ctx.stroke();
+    }
+}
+
 
 class Ball {
     constructor(x, y, radius, fillColor) {
@@ -22,6 +71,9 @@ class Ball {
         this.radius = radius;
         this.fillColor = fillColor;
         this.isPlayer = false;
+        this.velocity = new Vector(0, 0);
+        this.acceleration = new Vector(0, 0);
+        this.accelerationParameter = 0.5;
         ballList.push(this);
     }
 
@@ -32,6 +84,15 @@ class Ball {
         ctx.stroke();
         ctx.fillStyle = this.fillColor;
         ctx.fill();
+    }
+
+    displayVector() {
+        ctx.beginPath();
+        ctx.arc(100, 100, 50, 0, 2 * Math.PI);
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+        this.velocity.drawVector(100, 100, 10, "#6e9aeb");
+        this.acceleration.drawVector(100, 100, 50, "#ed4c7f");
     }
 }
 
@@ -70,17 +131,31 @@ function playerController(ball) {
     });
     
     if (moveUp) {
-        ball.y--;
+        ball.acceleration.y = -ball.accelerationParameter;
     }
     if (moveDown) {
-        ball.y++;
+        ball.acceleration.y = ball.accelerationParameter;
     }
     if (moveLeft) {
-        ball.x--;
+        ball.acceleration.x = -ball.accelerationParameter;
     }
     if (moveRight) {
-        ball.x++;
+        ball.acceleration.x = ball.accelerationParameter;
     }
+    if (!moveUp && !moveDown) {
+        ball.acceleration.y = 0;
+    }
+    if (!moveLeft && !moveRight) {
+        ball.acceleration.x = 0;
+    }
+
+    ball.acceleration = ball.acceleration.unit().multiply(ball.accelerationParameter);
+
+    ball.velocity = ball.velocity.add(ball.acceleration);
+    ball.velocity = ball.velocity.multiply(1 - friction);
+
+    ball.x += ball.velocity.x;
+    ball.y += ball.velocity.y;
 } 
 
 
@@ -93,6 +168,8 @@ function mainLoop() {
         if (ballElement.isPlayer) {
             playerController(mainBall);
         }
+
+        ballElement.displayVector();
     });
 
     requestAnimationFrame(mainLoop);
