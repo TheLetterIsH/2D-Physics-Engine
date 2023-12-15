@@ -153,29 +153,30 @@ function playerController(ball) {
     
 } 
 
-function round(number, precision){
-    let factor = 10** precision;
-    return Math.round(number * factor)/factor;
+function round(number, precision) {
+    let factor = 10**precision;
+    return Math.round(number * factor) / factor;
 }
 
-function collisionDetectionBetweenBalls(ball1, ball2){
+
+function collisionDetectionBetweenBalls(ball1, ball2) {
     let distance = ball2.position.subtract(ball1.position);
-    if(ball1.radius + ball2.radius >= distance.magnitude()){
+    if (ball1.radius + ball2.radius >= distance.magnitude()) {
         return true;
     }
-    else{
+    else {
         return false;
     }
 }
 
-function penetrationResolution(ball1, ball2){
+
+function penetrationResolution(ball1, ball2) {
     let distance = ball1.position.subtract(ball2.position);
     let penetrationDepth = ball1.radius + ball2.radius - distance.magnitude();
     let penetrationResolution = distance.unit().multiply(penetrationDepth/2);
     ball1.position = ball1.position.add(penetrationResolution);
     ball2.position = ball2.position.add(penetrationResolution.multiply(-1));
 }
-
 
 
 function mainLoop() {
@@ -188,8 +189,8 @@ function mainLoop() {
             playerController(mainBall);
         }
         
-        for(let i = index+1; i<ballList.length; i++)
-            if (collisionDetectionBetweenBalls(ballList[index] , ballList[i])){
+        for (let i = index + 1; i < ballList.length; i++)
+            if (collisionDetectionBetweenBalls(ballList[index] , ballList[i])) {
                 penetrationResolution(ballList[index] , ballList[i]);
             }
 
@@ -200,8 +201,10 @@ function mainLoop() {
 }
 
 
-let mainBall = new Ball(200, 200, 20, "mediumseagreen");
+let mainBall = new Ball(200, 200, 30, "mediumseagreen");
 let ball2 = new Ball(100, 100, 20, "mediumseagreen");
-let ball3 = new Ball(400, 400, 20, "mediumseagreen");
+let ball3 = new Ball(400, 400, 35, "mediumseagreen");
+let ball4 = new Ball(300, 300, 40, "mediumseagreen");
+let ball5 = new Ball(550, 300, 35, "mediumseagreen");
 mainBall.isPlayer = true;
 requestAnimationFrame(mainLoop);
