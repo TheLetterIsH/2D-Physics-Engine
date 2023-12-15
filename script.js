@@ -66,8 +66,7 @@ class Vector {
 
 class Ball {
     constructor(x, y, radius, fillColor) {
-        this.x = x;
-        this.y = y;
+        this.position = new Vector(x, y);
         this.radius = radius;
         this.fillColor = fillColor;
         this.isPlayer = false;
@@ -79,7 +78,7 @@ class Ball {
 
     drawBall() {
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI);
         ctx.strokeStyle = "black";
         ctx.stroke();
         ctx.fillStyle = this.fillColor;
@@ -87,12 +86,8 @@ class Ball {
     }
 
     displayVector() {
-        ctx.beginPath();
-        ctx.arc(100, 100, 50, 0, 2 * Math.PI);
-        ctx.strokeStyle = "black";
-        ctx.stroke();
-        this.velocity.drawVector(100, 100, 10, "#6e9aeb");
-        this.acceleration.drawVector(100, 100, 50, "#ed4c7f");
+        this.velocity.drawVector(this.position.x, this.position.y, 10, "#6e9aeb");
+        this.acceleration.drawVector(this.position.x, this.position.y, 50, "#ed4c7f");
     }
 }
 
@@ -154,20 +149,49 @@ function playerController(ball) {
     ball.velocity = ball.velocity.add(ball.acceleration);
     ball.velocity = ball.velocity.multiply(1 - friction);
 
-    ball.x += ball.velocity.x;
-    ball.y += ball.velocity.y;
+    ball.position = ball.position.add(ball.velocity);
+    
 } 
+
+function round(number, precision){
+    let factor = 10** precision;
+    return Math.round(number * factor)/factor;
+}
+
+function collisionDetectionBetweenBalls(ball1, ball2){
+    let distance = ball2.position.subtract(ball1.position);
+    if(ball1.radius + ball2.radius >= distance.magnitude()){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+function penetrationResolution(ball1, ball2){
+    let distance = ball1.position.subtract(ball2.position);
+    let penetrationDepth = ball1.radius + ball2.radius - distance.magnitude();
+    let penetrationResolution = distance.unit().multiply(penetrationDepth/2);
+    ball1.position = ball1.position.add(penetrationResolution);
+    ball2.position = ball2.position.add(penetrationResolution.multiply(-1));
+}
+
 
 
 function mainLoop() {
     ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
     
-    ballList.forEach(ballElement => {
+    ballList.forEach((ballElement, index) => {
         ballElement.drawBall();
 
         if (ballElement.isPlayer) {
             playerController(mainBall);
         }
+        
+        for(let i = index+1; i<ballList.length; i++)
+            if (collisionDetectionBetweenBalls(ballList[index] , ballList[i])){
+                penetrationResolution(ballList[index] , ballList[i]);
+            }
 
         ballElement.displayVector();
     });
@@ -177,5 +201,7 @@ function mainLoop() {
 
 
 let mainBall = new Ball(200, 200, 20, "mediumseagreen");
+let ball2 = new Ball(100, 100, 20, "mediumseagreen");
+let ball3 = new Ball(400, 400, 20, "mediumseagreen");
 mainBall.isPlayer = true;
 requestAnimationFrame(mainLoop);
