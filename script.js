@@ -14,7 +14,7 @@ const D = 68;
 
 const ballList = [];
 
-let friction = 0.1;
+let friction = 0.05;
 
 class Vector {
     constructor(x, y) {
@@ -89,7 +89,20 @@ class Ball {
         this.velocity.drawVector(this.position.x, this.position.y, 10, "#6e9aeb");
         this.acceleration.drawVector(this.position.x, this.position.y, 50, "#ed4c7f");
     }
+
+    reposition(){
+        this.acceleration = this.acceleration.unit().multiply(this.accelerationParameter);
+
+        this.velocity = this.velocity.add(this.acceleration);
+        this.velocity = this.velocity.multiply(1 - friction);
+    
+        this.position = this.position.add(this.velocity);
+        
+    }
 }
+
+
+
 
 
 function playerController(ball) {
@@ -144,13 +157,7 @@ function playerController(ball) {
         ball.acceleration.x = 0;
     }
 
-    ball.acceleration = ball.acceleration.unit().multiply(ball.accelerationParameter);
-
-    ball.velocity = ball.velocity.add(ball.acceleration);
-    ball.velocity = ball.velocity.multiply(1 - friction);
-
-    ball.position = ball.position.add(ball.velocity);
-    
+   
 } 
 
 function round(number, precision) {
@@ -170,12 +177,24 @@ function collisionDetectionBetweenBalls(ball1, ball2) {
 }
 
 
-function penetrationResolution(ball1, ball2) {
+function penetrationResolutionBetweenBalls(ball1, ball2) {
     let distance = ball1.position.subtract(ball2.position);
     let penetrationDepth = ball1.radius + ball2.radius - distance.magnitude();
     let penetrationResolution = distance.unit().multiply(penetrationDepth/2);
     ball1.position = ball1.position.add(penetrationResolution);
     ball2.position = ball2.position.add(penetrationResolution.multiply(-1));
+}
+
+
+function collisionResolutionBetweenBalls(ball1, ball2){
+    let normal = ball1.position.subtract(ball2.position).unit();
+    let relativeVelocity = ball1.velocity.subtract(ball2.velocity);
+    let seperationVelocity = Vector.dot(relativeVelocity, normal);
+    let seperationVelocityVector = normal.multiply(-seperationVelocity);
+
+    ball1.velocity = ball1.velocity.add(seperationVelocityVector);
+    ball2.velocity = ball2.velocity.add(seperationVelocityVector.multiply(-1));
+    
 }
 
 
@@ -191,10 +210,12 @@ function mainLoop() {
         
         for (let i = index + 1; i < ballList.length; i++)
             if (collisionDetectionBetweenBalls(ballList[index] , ballList[i])) {
-                penetrationResolution(ballList[index] , ballList[i]);
+                penetrationResolutionBetweenBalls(ballList[index] , ballList[i]);
+                collisionResolutionBetweenBalls(ballList[index] , ballList[i]);
             }
-
+        
         ballElement.displayVector();
+        ballElement.reposition();
     });
 
     requestAnimationFrame(mainLoop);
