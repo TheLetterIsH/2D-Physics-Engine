@@ -35,7 +35,7 @@ class Vector {
     }
 
     magnitude() {
-        return Math.sqrt(this.x**2 + this.y**2);
+        return Math.sqrt(this.x ** 2 + this.y ** 2);
     }
 
     unit() {
@@ -65,14 +65,24 @@ class Vector {
 
 
 class Ball {
-    constructor(x, y, radius, fillColor) {
+    constructor(x, y, mass, radius) {
         this.position = new Vector(x, y);
+
+        this.mass = mass;
+        if (this.mass === 0) {
+            this.inverseMass = 0;
+        }
+        else {
+            this.inverseMass = 1 / this.mass;
+        }
+
         this.radius = radius;
-        this.fillColor = fillColor;
+        this.elasticity = 1;
         this.isPlayer = false;
         this.velocity = new Vector(0, 0);
         this.acceleration = new Vector(0, 0);
         this.accelerationParameter = 0.5;
+        //this.fillColor = "mediumseagreen";
         ballList.push(this);
     }
 
@@ -81,28 +91,24 @@ class Ball {
         ctx.arc(this.position.x, this.position.y, this.radius, 0, 2 * Math.PI);
         ctx.strokeStyle = "black";
         ctx.stroke();
-        ctx.fillStyle = this.fillColor;
+        ctx.fillStyle = "mediumseagreen";
         ctx.fill();
     }
 
-    displayVector() {
+    displayGizmos() {
         this.velocity.drawVector(this.position.x, this.position.y, 10, "#6e9aeb");
-        this.acceleration.drawVector(this.position.x, this.position.y, 50, "#ed4c7f");
+        ctx.fillStyle = "black";
+        ctx.fillText("m: " + this.mass, this.position.x - (this.radius / 2.5), this.position.y - 5);
+        ctx.fillText("e: " + this.elasticity, this.position.x - (this.radius / 2.5), this.position.y + 5);
     }
 
-    reposition(){
+    reposition() {
         this.acceleration = this.acceleration.unit().multiply(this.accelerationParameter);
-
         this.velocity = this.velocity.add(this.acceleration);
         this.velocity = this.velocity.multiply(1 - friction);
-    
         this.position = this.position.add(this.velocity);
-        
     }
 }
-
-
-
 
 
 function playerController(ball) {
@@ -119,9 +125,8 @@ function playerController(ball) {
         if (e.keyCode == RIGHT || e.keyCode == D) {
             moveRight = true;
         }
-    
     });
-    
+
     canvas.addEventListener('keyup', function (e) {
         if (e.keyCode == UP || e.keyCode == W) {
             moveUp = false;
@@ -135,9 +140,8 @@ function playerController(ball) {
         if (e.keyCode == RIGHT || e.keyCode == D) {
             moveRight = false;
         }
-    
     });
-    
+
     if (moveUp) {
         ball.acceleration.y = -ball.accelerationParameter;
     }
@@ -156,19 +160,23 @@ function playerController(ball) {
     if (!moveLeft && !moveRight) {
         ball.acceleration.x = 0;
     }
+}
 
-   
-} 
 
 function round(number, precision) {
-    let factor = 10**precision;
+    let factor = 10 ** precision;
     return Math.round(number * factor) / factor;
 }
 
 
-function collisionDetectionBetweenBalls(ball1, ball2) {
-    let distance = ball2.position.subtract(ball1.position);
-    if (ball1.radius + ball2.radius >= distance.magnitude()) {
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+
+function collisionDetectionBetweenBalls(ballA, ballB) {
+    let distance = ballB.position.subtract(ballA.position);
+    if (ballA.radius + ballB.radius >= distance.magnitude()) {
         return true;
     }
     else {
@@ -177,44 +185,47 @@ function collisionDetectionBetweenBalls(ball1, ball2) {
 }
 
 
-function penetrationResolutionBetweenBalls(ball1, ball2) {
-    let distance = ball1.position.subtract(ball2.position);
-    let penetrationDepth = ball1.radius + ball2.radius - distance.magnitude();
-    let penetrationResolution = distance.unit().multiply(penetrationDepth/2);
-    ball1.position = ball1.position.add(penetrationResolution);
-    ball2.position = ball2.position.add(penetrationResolution.multiply(-1));
+function penetrationResolutionBetweenBalls(ballA, ballB) {
+    let distance = ballA.position.subtract(ballB.position);
+    let penetrationDepth = ballA.radius + ballB.radius - distance.magnitude();
+    let penetrationResolution = distance.unit().multiply(penetrationDepth / (ballA.inverseMass + ballB.inverseMass));
+    ballA.position = ballA.position.add(penetrationResolution.multiply(ballA.inverseMass));
+    ballB.position = ballB.position.add(penetrationResolution.multiply(-ballB.inverseMass));
 }
 
 
-function collisionResolutionBetweenBalls(ball1, ball2){
-    let normal = ball1.position.subtract(ball2.position).unit();
-    let relativeVelocity = ball1.velocity.subtract(ball2.velocity);
+function collisionResolutionBetweenBalls(ballA, ballB) {
+    let normal = ballA.position.subtract(ballB.position).unit();
+    let relativeVelocity = ballA.velocity.subtract(ballB.velocity);
     let seperationVelocity = Vector.dot(relativeVelocity, normal);
-    let seperationVelocityVector = normal.multiply(-seperationVelocity);
+    let newSeperationVelocity = -seperationVelocity * Math.min(ballA.elasticity, ballB.elasticity);
 
-    ball1.velocity = ball1.velocity.add(seperationVelocityVector);
-    ball2.velocity = ball2.velocity.add(seperationVelocityVector.multiply(-1));
-    
+    let seperationVelocityDifference = newSeperationVelocity - seperationVelocity;
+    let impulse = seperationVelocityDifference / (ballA.inverseMass + ballB.inverseMass);
+    let impulseVector = normal.multiply(impulse);
+
+    ballA.velocity = ballA.velocity.add(impulseVector.multiply(ballA.inverseMass));
+    ballB.velocity = ballB.velocity.add(impulseVector.multiply(-ballB.inverseMass));
 }
 
 
 function mainLoop() {
     ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    
+
     ballList.forEach((ballElement, index) => {
         ballElement.drawBall();
 
         if (ballElement.isPlayer) {
-            playerController(mainBall);
+            playerController(ballElement);
         }
-        
+
         for (let i = index + 1; i < ballList.length; i++)
-            if (collisionDetectionBetweenBalls(ballList[index] , ballList[i])) {
-                penetrationResolutionBetweenBalls(ballList[index] , ballList[i]);
-                collisionResolutionBetweenBalls(ballList[index] , ballList[i]);
+            if (collisionDetectionBetweenBalls(ballList[index], ballList[i])) {
+                penetrationResolutionBetweenBalls(ballList[index], ballList[i]);
+                collisionResolutionBetweenBalls(ballList[index], ballList[i]);
             }
-        
-        ballElement.displayVector();
+
+        ballElement.displayGizmos();
         ballElement.reposition();
     });
 
@@ -222,10 +233,11 @@ function mainLoop() {
 }
 
 
-let mainBall = new Ball(200, 200, 30, "mediumseagreen");
-let ball2 = new Ball(100, 100, 20, "mediumseagreen");
-let ball3 = new Ball(400, 400, 35, "mediumseagreen");
-let ball4 = new Ball(300, 300, 40, "mediumseagreen");
-let ball5 = new Ball(550, 300, 35, "mediumseagreen");
-mainBall.isPlayer = true;
+for (let i = 0; i < 10; i++) {
+    let newBall = new Ball(randomInt(100, 500), randomInt(100, 350), randomInt(0, 10), randomInt(20, 50));
+    newBall.elasticity = randomInt(0, 15) / 10;
+}
+
+ballList[0].isPlayer = true;
+
 requestAnimationFrame(mainLoop);
