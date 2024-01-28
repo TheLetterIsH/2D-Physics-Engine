@@ -96,7 +96,7 @@ class Ball {
     }
 
     displayGizmos() {
-        this.velocity.drawVector(this.position.x, this.position.y, 10, "#6e9aeb");
+        this.velocity.drawVector(this.position.x, this.position.y, 10, "red");
         ctx.fillStyle = "black";
         ctx.fillText("m: " + this.mass, this.position.x - (this.radius / 2.5), this.position.y - 5);
         ctx.fillText("e: " + this.elasticity, this.position.x - (this.radius / 2.5), this.position.y + 5);
